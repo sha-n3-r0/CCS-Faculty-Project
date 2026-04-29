@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AuditLogsController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
@@ -12,9 +15,7 @@ Route::get('/', function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/students', [StudentController::class, 'index'])->name('students');
     Route::get('/students/create', [StudentController::class, 'create'])->name('students.create');
@@ -23,12 +24,15 @@ Route::middleware('auth')->group(function () {
     Route::put('/students/{student}', [StudentController::class, 'update'])->name('students.update');
     Route::get('/students/{student}', [StudentController::class, 'show'])->name('students.show');
 
-    Route::get('/reports', function () {
-        return Inertia::render('Reports');
-    })->name('reports');
+    Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
+    Route::post('/reports/preview', [ReportsController::class, 'preview'])->name('reports.preview');
+    Route::get('/reports/export.csv', [ReportsController::class, 'exportCsv'])->name('reports.export.csv');
+    Route::get('/reports/export.pdf', [ReportsController::class, 'exportPdf'])->name('reports.export.pdf');
 
     Route::middleware('admin')->group(function () {
         Route::get('/settings', [SettingsController::class, 'show'])->name('settings');
+        Route::post('/settings/config', [SettingsController::class, 'updateConfig'])->name('settings.config.update');
+        Route::get('/settings/audit-logs', [AuditLogsController::class, 'index'])->name('settings.audit.index');
         Route::post('/settings/admins', [AdminUserController::class, 'store'])->name('settings.admins.store');
         Route::patch('/settings/admins/{user}', [AdminUserController::class, 'update'])->name('settings.admins.update');
         Route::delete('/settings/admins/{user}', [AdminUserController::class, 'destroy'])->name('settings.admins.destroy');

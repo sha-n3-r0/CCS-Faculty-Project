@@ -1,9 +1,9 @@
 import InputError from '@/Components/InputError';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { router, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import React, { useState } from 'react';
 
-export default function Settings({ adminUsers = [] }) {
+export default function Settings({ adminUsers = [], systemConfig = null, auditLogs = null }) {
     const { errors } = usePage().props;
     const [activeMenu, setActiveMenu] = useState('users');
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -12,15 +12,13 @@ export default function Settings({ adminUsers = [] }) {
     const createForm = useForm({ name: '', email: '' });
     const editForm = useForm({ name: '', email: '', is_active: true });
 
-    const [maintenanceMode, setMaintenanceMode] = useState(false);
-    const [configSaveMsg, setConfigSaveMsg] = useState('');
+    const configForm = useForm({
+        current_semester: systemConfig?.current_semester ?? '',
+    });
 
     const menus = [
         { id: 'users', label: 'User Management' },
-        { id: 'config', label: 'System Configuration' },
         { id: 'audit', label: 'Audit Logs Viewer' },
-        { id: 'data', label: 'Data Import/Export' },
-        { id: 'backup', label: 'Backup & Restore' },
     ];
 
     const openCreateModal = () => {
@@ -68,16 +66,16 @@ export default function Settings({ adminUsers = [] }) {
         });
     };
 
-    const handleConfigToggle = () => {
-        setMaintenanceMode(!maintenanceMode);
-        setConfigSaveMsg('Saving configuration...');
-        setTimeout(() => setConfigSaveMsg('Changes saved successfully!'), 800);
-        setTimeout(() => setConfigSaveMsg(''), 3000);
+    const saveConfig = (e) => {
+        e.preventDefault();
+        configForm.post(route('settings.config.update'), {
+            preserveScroll: true,
+        });
     };
 
     return (
         <AdminLayout title="System Settings" activeTab="settings">
-            <div className="flex h-full w-full font-['Montserrat'] animate-fade-in relative z-10 gap-6">
+            <div className="flex h-full w-full font-sans animate-fade-in relative z-10 gap-6">
                 <div className="w-[280px] bg-white rounded-[24px] xl:rounded-[32px] p-6 flex flex-col gap-2 shrink-0 border border-slate-200/60 shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
                     <h2 className="text-[10px] font-black text-slate-400 px-4 uppercase tracking-[0.2em] mb-4">Admin Tools</h2>
 
@@ -183,55 +181,26 @@ export default function Settings({ adminUsers = [] }) {
                             </div>
                         )}
 
-                        {activeMenu === 'config' && (
-                            <div className="bg-white rounded-[24px] xl:rounded-[32px] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-200/60 p-8 xl:p-10 animate-slide-up space-y-8">
-                                <div className="flex items-center justify-between">
+
+                        {activeMenu === 'audit' && (
+                            <div className="bg-white rounded-[24px] xl:rounded-[32px] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-200/60 overflow-hidden animate-slide-up">
+                                <div className="p-6 md:px-8 border-b border-slate-100 flex justify-between items-center bg-white">
                                     <div>
-                                        <h3 className="font-black text-xl tracking-tight text-slate-800 mb-2">Maintenance Mode</h3>
-                                        <p className="text-sm font-medium text-slate-500 max-w-md">When enabled, the system will prevent students and faculty from logging in.</p>
+                                        <h3 className="font-black text-slate-800 text-[14px]">Audit Logs</h3>
+                                        <p className="text-xs font-bold text-slate-400 mt-1">Use the dedicated viewer for pagination and filters.</p>
                                     </div>
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className={`w-16 h-8 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300 border shadow-inner ${maintenanceMode ? 'bg-orange-500 border-orange-600' : 'bg-slate-200 border-slate-300'}`}
-                                        onClick={handleConfigToggle}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                handleConfigToggle();
-                                            }
-                                        }}
+                                    <Link
+                                        href={route('settings.audit.index')}
+                                        className="text-[11px] tracking-widest uppercase bg-slate-800 text-white px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-slate-900 transition-all"
                                     >
-                                        <div className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform duration-300 ${maintenanceMode ? 'translate-x-8' : ''}`}></div>
+                                        Open Viewer
+                                    </Link>
+                                </div>
+                                <div className="p-6 md:px-8">
+                                    <div className="text-sm font-bold text-slate-500">
+                                        {auditLogs ? 'Loaded.' : 'No inline logs loaded here.'}
                                     </div>
                                 </div>
-                                <hr className="border-slate-100" />
-                                <div>
-                                    <h3 className="font-black text-lg tracking-tight text-slate-800 mb-4">Semester Control</h3>
-                                    <select className="w-full max-w-md bg-white border border-slate-200 shadow-sm rounded-xl px-5 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-orange-200 focus:border-orange-400 outline-none transition-all cursor-pointer">
-                                        <option>2026 - First Semester</option>
-                                        <option>2026 - Second Semester</option>
-                                    </select>
-                                </div>
-
-                                {configSaveMsg && (
-                                    <div className="fixed bottom-10 right-10 bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl font-bold text-sm tracking-wide animate-slide-up flex items-center gap-4 z-50">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse border border-green-200"></div>
-                                        {configSaveMsg}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {activeMenu !== 'users' && activeMenu !== 'config' && (
-                            <div className="flex flex-col items-center justify-center py-24 bg-white rounded-[24px] xl:rounded-[32px] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] border border-slate-200 animate-slide-up border-dashed opacity-80 hover:opacity-100 transition-opacity">
-                                <div className="w-20 h-20 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mb-6 shadow-sm">
-                                    <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                    </svg>
-                                </div>
-                                <p className="text-slate-800 font-black tracking-tight text-xl mb-2">{menus.find((m) => m.id === activeMenu).label}</p>
-                                <p className="text-sm font-bold tracking-widest uppercase text-slate-400">Currently awaiting backend data link integration.</p>
                             </div>
                         )}
                     </div>
@@ -240,7 +209,7 @@ export default function Settings({ adminUsers = [] }) {
                 {isUserModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-md" onClick={() => !createForm.processing && setIsUserModalOpen(false)}></div>
-                        <div className="bg-white rounded-[32px] shadow-2xl border border-white w-full max-w-md p-10 relative z-10 animate-slide-up font-['Montserrat']">
+                        <div className="bg-white rounded-[32px] shadow-2xl border border-white w-full max-w-md p-10 relative z-10 animate-slide-up font-sans">
                             <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Issue Admin Account</h3>
                             <p className="text-[13px] font-medium text-slate-500 mb-8 tracking-wide">Creates the account (or grants access if the email already exists).</p>
 
@@ -293,7 +262,7 @@ export default function Settings({ adminUsers = [] }) {
                 {editingUser && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-md" onClick={() => !editForm.processing && setEditingUser(null)}></div>
-                        <div className="bg-white rounded-[32px] shadow-2xl border border-white w-full max-w-md p-10 relative z-10 animate-slide-up font-['Montserrat']">
+                        <div className="bg-white rounded-[32px] shadow-2xl border border-white w-full max-w-md p-10 relative z-10 animate-slide-up font-sans">
                             <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Edit Administrator</h3>
                             <p className="text-[13px] font-medium text-slate-500 mb-8 tracking-wide">Update profile and account status.</p>
 

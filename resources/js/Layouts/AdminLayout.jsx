@@ -97,16 +97,7 @@ export default function AdminLayout({ children, title, activeTab }) {
                 {/* Header Navbar */}
                 <header className="h-[80px] bg-white/60 backdrop-blur-xl rounded-[24px] flex items-center justify-between px-6 lg:px-8 shadow-[0_4px_30px_rgba(0,0,0,0.02)] border border-slate-200/50 shrink-0 z-10 sticky top-0 mt-0">
                     
-                    <div className="flex items-center gap-4 flex-1 max-w-sm">
-                        <div className="flex items-center bg-white hover:bg-slate-50 transition-colors px-4 py-2.5 rounded-full w-full border border-slate-200 shadow-sm focus-within:ring-2 ring-orange-100 focus-within:border-orange-300">
-                            <SearchIcon />
-                            <input 
-                                type="text" 
-                                placeholder="Quick search..." 
-                                className="bg-transparent border-none outline-none focus:ring-0 text-[13px] text-slate-700 w-full placeholder-slate-400 ml-2" 
-                            />
-                        </div>
-                    </div>
+                    <div className="flex items-center gap-4 flex-1 max-w-sm"></div>
                     
                     <div className="flex items-center gap-6 pl-4 object-right">
                         <div className="relative group cursor-pointer hover:-translate-y-0.5 transition-transform">

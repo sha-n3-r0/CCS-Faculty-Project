@@ -9,10 +9,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use App\Services\AuditLogger;
 
 class AdminUserController extends Controller
 {
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, AuditLogger $audit): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -32,6 +33,10 @@ class AdminUserController extends Controller
                 'name' => $validated['name'],
                 'is_admin' => true,
                 'is_active' => true,
+            ]);
+
+            $audit->log($request, 'admin.grant', User::class, $existing->id, [
+                'email' => $existing->email,
             ]);
 
             return redirect()->route('settings');
@@ -57,10 +62,15 @@ class AdminUserController extends Controller
             'is_active' => true,
         ]);
 
+        $created = User::query()->where('email', $validated['email'])->first();
+        $audit->log($request, 'admin.create', User::class, $created?->id, [
+            'email' => $validated['email'],
+        ]);
+
         return redirect()->route('settings');
     }
 
-    public function update(Request $request, User $user): RedirectResponse
+    public function update(Request $request, User $user, AuditLogger $audit): RedirectResponse
     {
         if (! $user->is_admin) {
             abort(404);
@@ -78,10 +88,15 @@ class AdminUserController extends Controller
             'is_active' => (bool) $validated['is_active'],
         ]);
 
+        $audit->log($request, 'admin.update', User::class, $user->id, [
+            'email' => $user->email,
+            'is_active' => (bool) $validated['is_active'],
+        ]);
+
         return redirect()->route('settings');
     }
 
-    public function destroy(Request $request, User $user): RedirectResponse
+    public function destroy(Request $request, User $user, AuditLogger $audit): RedirectResponse
     {
         if (! $user->is_admin) {
             abort(404);
@@ -101,6 +116,10 @@ class AdminUserController extends Controller
         }
 
         $user->update(['is_admin' => false]);
+
+        $audit->log($request, 'admin.revoke', User::class, $user->id, [
+            'email' => $user->email,
+        ]);
 
         return redirect()->route('settings');
     }

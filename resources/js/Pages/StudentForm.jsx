@@ -126,7 +126,7 @@ export default function StudentForm({ isEdit, studentId, student }) {
 
     return (
         <AdminLayout title={isEdit ? 'Edit Student Profile' : 'Add New Student'} activeTab="students">
-            <div className="flex flex-col h-full font-['Montserrat'] relative animate-fade-in pb-12 w-full max-w-4xl mx-auto">
+            <div className="flex flex-col h-full font-sans relative animate-fade-in pb-12 w-full max-w-4xl mx-auto">
                 <div className="flex items-center gap-6 mb-8 mt-2">
                     <Link
                         href={route('students')}

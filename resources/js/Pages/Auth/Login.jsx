@@ -11,6 +11,14 @@ export default function Login({ status, canResetPassword }) {
     
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
+    const [showStatus, setShowStatus] = useState(Boolean(status));
+
+    useEffect(() => {
+        setShowStatus(Boolean(status));
+        if (!status) return;
+        const t = window.setTimeout(() => setShowStatus(false), 4500);
+        return () => window.clearTimeout(t);
+    }, [status]);
 
     const submit = (e) => {
         e.preventDefault();
@@ -25,9 +33,6 @@ export default function Login({ status, canResetPassword }) {
             <Head title="Log in" />
             
             <style dangerouslySetInnerHTML={{__html: `
-                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
-                .font-montserrat { font-family: 'Montserrat', sans-serif; }
-                
                 @keyframes float-slow {
                     0% { transform: translateY(0px) rotate(0deg) scale(1); }
                     33% { transform: translateY(-30px) rotate(5deg) scale(1.05); }
@@ -38,7 +43,7 @@ export default function Login({ status, canResetPassword }) {
                 .animate-float-delayed { animation: float-slow 18s ease-in-out infinite; animation-delay: 2s; }
             `}} />
 
-            <div className="relative min-h-screen overflow-hidden flex flex-col justify-between items-center font-montserrat bg-[#F8FAFC]">
+            <div className="relative min-h-screen overflow-hidden flex flex-col justify-between items-center font-sans bg-[#F8FAFC]">
                 
                 {/* Advanced Light Mode Floating Orb Backgrounds */}
                 <div className="absolute inset-0 w-[100vw] h-[100vh] fixed bg-[#F8FAFC] z-0 pointer-events-none"></div>
@@ -83,12 +88,6 @@ export default function Login({ status, canResetPassword }) {
                         <h2 className="text-slate-800 text-center text-3xl font-black mb-10 tracking-tight inline-block w-full">
                             System Access
                         </h2>
-
-                        {status && (
-                            <div className="mb-4 text-xs font-bold tracking-wider text-green-700 bg-green-50 py-3 rounded-xl border border-green-200 text-center animate-fade-in shadow-sm">
-                                {status}
-                            </div>
-                        )}
 
                         <form onSubmit={submit} className="flex flex-col gap-5 relative z-10">
                             {/* Email Field - Cinematic entrance delay 0.2s */}
@@ -151,6 +150,36 @@ export default function Login({ status, canResetPassword }) {
                         </form>
                     </div>
                 </main>
+
+                {showStatus && status && (
+                    <div className="fixed top-5 right-5 z-[99999] w-[92vw] max-w-sm animate-slide-up pointer-events-none">
+                        <div className="bg-white/90 backdrop-blur-xl border border-emerald-200 shadow-[0_16px_60px_rgba(0,0,0,0.12)] rounded-2xl px-4 py-3 flex gap-3 items-start">
+                            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+                                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[11px] font-black tracking-widest uppercase text-emerald-700">
+                                    Session ended
+                                </p>
+                                <p className="text-[13px] font-semibold text-slate-700 mt-0.5">
+                                    {status}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowStatus(false)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors pointer-events-auto"
+                                aria-label="Dismiss message"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <footer className={`w-full flex justify-center pb-8 z-10 relative transition-all duration-1000 delay-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="text-slate-400 text-[10px] font-bold tracking-[0.2em] uppercase mix-blend-multiply">

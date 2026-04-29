@@ -1,26 +1,103 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
-export default function Reports() {
+export default function Reports({ overview = null }) {
     const [generating, setGenerating] = useState(false);
     const [reportReady, setReportReady] = useState(false);
     const [reportType, setReportType] = useState('Enrollment Statistics');
+    const [violationStatusFilter, setViolationStatusFilter] = useState('all'); // all | pending | cleared
 
-    const handleGenerate = (type) => {
+    const [preview, setPreview] = useState({
+        title: '',
+        columns: [],
+        rows: [],
+        meta: null,
+        reportTypeKey: null,
+    });
+
+    const fmtInt = (v) => {
+        if (v === 0) return '';
+        if (v === null || v === undefined) return '';
+        try {
+            return Number(v).toLocaleString();
+        } catch {
+            return String(v);
+        }
+    };
+
+    const csrf = useMemo(() => {
+        const el = document.querySelector('meta[name="csrf-token"]');
+        return el ? el.getAttribute('content') : null;
+    }, []);
+
+    const reportTypeKey = useMemo(() => {
+        return reportType === 'Violations Summary' ? 'violations_by_status' : 'enrollment_by_status';
+    }, [reportType]);
+
+    const previewRows = preview?.rows ?? [];
+    const previewColumns = preview?.columns ?? [];
+
+    const handleGenerate = async (type) => {
         setReportType(type);
         setGenerating(true);
         setReportReady(false);
-        // Simulate API call and payload processing
-        setTimeout(() => {
-            setGenerating(false);
+
+        const nextReportTypeKey = type === 'Violations Summary' ? 'violations_by_status' : 'enrollment_by_status';
+        const payload = {
+            reportType: nextReportTypeKey,
+            filters: nextReportTypeKey === 'violations_by_status' ? { status: violationStatusFilter } : {},
+        };
+
+        try {
+            const res = await fetch('/reports/preview', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                throw new Error(`Preview failed (${res.status})`);
+            }
+
+            const data = await res.json();
+            setPreview({
+                title: data?.title ?? '',
+                columns: Array.isArray(data?.columns) ? data.columns : [],
+                rows: Array.isArray(data?.rows) ? data.rows : [],
+                meta: data?.meta ?? null,
+                reportTypeKey: data?.reportType ?? nextReportTypeKey,
+            });
             setReportReady(true);
-        }, 2000);
+        } catch (e) {
+            // Keep UI stable; user can retry.
+            setPreview({ title: '', columns: [], rows: [], meta: null, reportTypeKey: null });
+            setReportReady(false);
+            // eslint-disable-next-line no-alert
+            alert('Failed to generate report preview. Please try again.');
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const exportUrl = (format) => {
+        const key = preview?.reportTypeKey ?? reportTypeKey;
+        const qp = new URLSearchParams();
+        qp.set('reportType', key);
+        if (key === 'violations_by_status') {
+            qp.set('status', violationStatusFilter);
+        }
+        return `/reports/export.${format}?${qp.toString()}`;
     };
 
     return (
         <AdminLayout title="Reports" activeTab="reports">
             {/* The Main Light-Mode Canvas area */}
-            <div className="flex-1 w-full h-full font-['Montserrat'] relative z-10 flex flex-col gap-6 animate-fade-in pb-4">
+            <div className="flex-1 w-full h-full font-sans relative z-10 flex flex-col gap-6 animate-fade-in pb-4">
                 
                 {generating && (
                     <div className="absolute inset-x-0 -inset-y-4 bg-[#F8FAFC]/80 backdrop-blur-md z-50 flex flex-col items-center justify-center animate-fade-in rounded-3xl">
@@ -88,10 +165,14 @@ export default function Reports() {
                                 <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/60 space-y-5 shadow-inner flex-1">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Status Filter</label>
-                                        <select className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-[13px] font-semibold outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 text-slate-700 cursor-pointer shadow-sm transition-shadow">
-                                            <option>All Violations</option>
-                                            <option>Pending Sanctions</option>
-                                            <option>Cleared</option>
+                                        <select
+                                            value={violationStatusFilter}
+                                            onChange={(e) => setViolationStatusFilter(e.target.value)}
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 text-[13px] font-semibold outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 text-slate-700 cursor-pointer shadow-sm transition-shadow"
+                                        >
+                                            <option value="all">All Violations</option>
+                                            <option value="pending">Pending Sanctions</option>
+                                            <option value="cleared">Cleared</option>
                                         </select>
                                     </div>
                                     <div className="space-y-2">
@@ -114,16 +195,24 @@ export default function Reports() {
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
                                 </button>
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-800 tracking-tight">Preview: {reportType}</h2>
-                                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Generated accurately on {new Date().toLocaleDateString()}</p>
+                                    <h2 className="text-xl font-black text-slate-800 tracking-tight">Preview: {preview?.title || reportType}</h2>
+                                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">
+                                        Generated on {preview?.meta?.generated_at ? new Date(preview.meta.generated_at).toLocaleString() : new Date().toLocaleString()}
+                                    </p>
                                 </div>
                             </div>
                             <div className="flex gap-3">
-                                <button className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-[11px] tracking-widest uppercase font-bold text-slate-600 shadow-sm transition-all hover:bg-slate-50">
+                                <button
+                                    onClick={() => (window.location.href = exportUrl('csv'))}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-[11px] tracking-widest uppercase font-bold text-slate-600 shadow-sm transition-all hover:bg-slate-50"
+                                >
                                     <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                     Export CSV
                                 </button>
-                                <button className="flex items-center gap-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-xl text-[11px] tracking-widest uppercase font-bold text-white shadow-md transition-all">
+                                <button
+                                    onClick={() => (window.location.href = exportUrl('pdf'))}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-xl text-[11px] tracking-widest uppercase font-bold text-white shadow-md transition-all"
+                                >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                                     Export PDF
                                 </button>
@@ -133,7 +222,9 @@ export default function Reports() {
                         <div className="flex-1 bg-white overflow-hidden flex flex-col border-t border-slate-200/50">
                             {/* Mock Data Table */}
                             <div className="p-4 px-8 bg-slate-50 flex items-center justify-between border-b border-slate-100 shrink-0">
-                                <span className="text-[11px] font-black tracking-widest uppercase text-slate-500">Total Entries: 245</span>
+                                <span className="text-[11px] font-black tracking-widest uppercase text-slate-500">
+                                    {previewRows.length > 0 ? `Total Entries: ${previewRows.length}` : ''}
+                                </span>
                                 <div className="flex gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full bg-red-400"></span>
                                     <span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
@@ -144,23 +235,37 @@ export default function Reports() {
                                 <table className="w-full text-left border-collapse">
                                     <thead className="bg-slate-50 sticky top-0 border-b border-slate-200 z-10">
                                         <tr className="text-[10px] text-slate-400 tracking-widest uppercase font-black">
-                                            <th className="px-8 py-5 border-r border-slate-100/50 w-[20%]">Metric / ID</th>
-                                            <th className="px-8 py-5 border-r border-slate-100/50 w-[30%]">Category</th>
-                                            <th className="px-8 py-5 border-r border-slate-100/50 w-[30%]">Value</th>
-                                            <th className="px-8 py-5 w-[20%]">Status</th>
+                                            {previewColumns.map((c, idx) => (
+                                                <th
+                                                    key={c.key || idx}
+                                                    className={`px-8 py-5 ${idx < previewColumns.length - 1 ? 'border-r border-slate-100/50' : ''}`}
+                                                >
+                                                    {c.label || c.key}
+                                                </th>
+                                            ))}
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white">
-                                        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                                            <tr key={i} className="border-b border-slate-100/50 hover:bg-orange-50/30 transition-colors">
-                                                <td className="px-8 py-5 text-[13px] font-black text-slate-700 border-r border-slate-50">DAT_{100+i}</td>
-                                                <td className="px-8 py-5 text-[13px] font-semibold text-slate-500 border-r border-slate-50">{reportType === 'Violations Summary' ? 'Policy Infraction' : 'Information Technology'}</td>
-                                                <td className="px-8 py-5 text-[13px] font-mono text-slate-400 border-r border-slate-50 font-bold">Record {Math.floor(Math.random() * 1000)}</td>
-                                                <td className="px-8 py-5">
-                                                    <span className="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-50 text-green-600 border border-green-100">Validated</span>
+                                        {previewRows.length > 0 ? (
+                                            previewRows.map((row, i) => (
+                                                <tr key={row.id ?? i} className="border-b border-slate-100/50 hover:bg-orange-50/30 transition-colors">
+                                                    {previewColumns.map((c, idx) => (
+                                                        <td
+                                                            key={`${row.id ?? i}-${c.key ?? idx}`}
+                                                            className={`px-8 py-5 text-[13px] ${idx < previewColumns.length - 1 ? 'border-r border-slate-50' : ''} ${typeof row?.[c.key] === 'number' ? 'font-mono text-slate-400 font-bold' : 'font-semibold text-slate-600'}`}
+                                                        >
+                                                            {typeof row?.[c.key] === 'number' ? fmtInt(row[c.key]) : String(row?.[c.key] ?? '')}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={Math.max(previewColumns.length, 1)} className="px-8 py-10 text-center text-[11px] font-bold tracking-widest uppercase text-slate-400">
+                                                    No data
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

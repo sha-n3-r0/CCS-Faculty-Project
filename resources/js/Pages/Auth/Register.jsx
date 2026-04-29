@@ -26,9 +26,6 @@ export default function Register({ canRegister = true }) {
             <Head title="Register" />
             
             <style dangerouslySetInnerHTML={{__html: `
-                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
-                .font-montserrat { font-family: 'Montserrat', sans-serif; }
-                
                 @keyframes float-slow {
                     0% { transform: translateY(0px) rotate(0deg) scale(1); }
                     33% { transform: translateY(-30px) rotate(-5deg) scale(1.05); }
@@ -39,7 +36,7 @@ export default function Register({ canRegister = true }) {
                 .animate-float-delayed { animation: float-slow 18s ease-in-out infinite; animation-delay: 2s; }
             `}} />
 
-            <div className="relative min-h-screen overflow-x-hidden flex flex-col justify-between items-center font-montserrat bg-[#F8FAFC]">
+            <div className="relative min-h-screen overflow-x-hidden flex flex-col justify-between items-center font-sans bg-[#F8FAFC]">
                 
                 {/* Advanced Light Mode Floating Orb Backgrounds */}
                 <div className="absolute inset-0 w-[100vw] h-[100vh] fixed bg-[#F8FAFC] z-0 pointer-events-none"></div>

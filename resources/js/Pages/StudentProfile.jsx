@@ -84,7 +84,7 @@ export default function StudentProfile({ studentId, studentRecord }) {
 
     return (
         <AdminLayout title="Student Profile" activeTab="students">
-            <div className="flex flex-col h-full font-['Montserrat'] relative animate-fade-in w-full pb-8">
+            <div className="flex flex-col h-full font-sans relative animate-fade-in w-full pb-8">
                 
                 {/* Clean Header Navigation Frame */}
                 <div className="flex items-center gap-6 mb-6 mt-2">

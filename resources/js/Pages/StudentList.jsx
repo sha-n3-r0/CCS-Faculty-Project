@@ -1,14 +1,56 @@
-import React, { useState } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
-export default function StudentList({ students = [] }) {
+export default function StudentList({ students = [], filters = null }) {
     const { avatarPlaceholderUrl } = usePage().props;
     const [viewMode, setViewMode] = useState('table');
+    const rows = Array.isArray(students) ? students : (students?.data ?? []);
+    const links = Array.isArray(students?.links) ? students.links : [];
+
+    const initial = useMemo(() => {
+        const f = filters || {};
+        return {
+            q: f.q ?? '',
+            program: f.program ?? '',
+            year: f.year ?? '',
+            status: f.status ?? '',
+        };
+    }, [filters]);
+
+    const [q, setQ] = useState(initial.q);
+    const [program, setProgram] = useState(initial.program);
+    const [year, setYear] = useState(initial.year);
+    const [status, setStatus] = useState(initial.status);
+
+    // Keep local state aligned when navigating back/forward (or pagination changes).
+    useEffect(() => {
+        setQ(initial.q);
+        setProgram(initial.program);
+        setYear(initial.year);
+        setStatus(initial.status);
+    }, [initial.q, initial.program, initial.year, initial.status]);
+
+    // Debounced search + filters (server-side).
+    useEffect(() => {
+        const t = setTimeout(() => {
+            router.get(
+                route('students'),
+                {
+                    q: q || undefined,
+                    program: program || undefined,
+                    year: year || undefined,
+                    status: status || undefined,
+                },
+                { preserveScroll: true, preserveState: true, replace: true }
+            );
+        }, 350);
+        return () => clearTimeout(t);
+    }, [q, program, year, status]);
 
     return (
         <AdminLayout title="Student List" activeTab="students">
-            <div className="flex flex-col h-full font-['Montserrat'] animate-fade-in relative z-10 w-full mb-8">
+            <div className="flex flex-col h-full font-sans animate-fade-in relative z-10 w-full mb-8">
                 
                 {/* Header & Controls Section (Unboxed, floating over the canvas) */}
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-6">
@@ -50,6 +92,8 @@ export default function StudentList({ students = [] }) {
                                 type="text" 
                                 placeholder="Search by Student ID, Name, or Email..." 
                                 className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm shadow-inner focus:ring-2 focus:ring-orange-200 focus:border-orange-400 focus:bg-white text-slate-800 placeholder-slate-400 transition-all" 
+                                value={q}
+                                onChange={(e) => setQ(e.target.value)}
                             />
                         </div>
                     </div>
@@ -61,22 +105,37 @@ export default function StudentList({ students = [] }) {
                              <option>Basketball</option>
                              <option>Design</option>
                          </select>
-                         <select className="bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 text-slate-600 focus:ring-2 focus:ring-orange-200 outline-none cursor-pointer transition-all hover:bg-slate-100">
-                             <option>Program: All</option>
-                             <option>BS Information Technology</option>
-                             <option>BS Computer Science</option>
+                         <select
+                             value={program}
+                             onChange={(e) => setProgram(e.target.value)}
+                             className="bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 text-slate-600 focus:ring-2 focus:ring-orange-200 outline-none cursor-pointer transition-all hover:bg-slate-100"
+                         >
+                             <option value="">Program: All</option>
+                             <option value="BSIT">BSIT</option>
+                             <option value="BSCS">BSCS</option>
+                             <option value="BSIS">BSIS</option>
                          </select>
-                         <select className="bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 text-slate-600 focus:ring-2 focus:ring-orange-200 outline-none cursor-pointer transition-all hover:bg-slate-100">
-                             <option>Year Level: All</option>
-                             <option>1st Year</option>
-                             <option>2nd Year</option>
-                             <option>3rd Year</option>
-                             <option>4th Year</option>
+                         <select
+                             value={year}
+                             onChange={(e) => setYear(e.target.value)}
+                             className="bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 text-slate-600 focus:ring-2 focus:ring-orange-200 outline-none cursor-pointer transition-all hover:bg-slate-100"
+                         >
+                             <option value="">Year Level: All</option>
+                             <option value="1st Year">1st Year</option>
+                             <option value="2nd Year">2nd Year</option>
+                             <option value="3rd Year">3rd Year</option>
+                             <option value="4th Year">4th Year</option>
                          </select>
-                         <select className="bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 text-slate-600 focus:ring-2 focus:ring-orange-200 outline-none cursor-pointer transition-all hover:bg-slate-100">
-                             <option>Status: All</option>
-                             <option>Enrolled</option>
-                             <option>Not Enrolled</option>
+                         <select
+                             value={status}
+                             onChange={(e) => setStatus(e.target.value)}
+                             className="bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 text-slate-600 focus:ring-2 focus:ring-orange-200 outline-none cursor-pointer transition-all hover:bg-slate-100"
+                         >
+                             <option value="">Status: All</option>
+                             <option value="Enrolled">Enrolled</option>
+                             <option value="Not Enrolled">Not Enrolled</option>
+                             <option value="Leave of Absence">Leave of Absence</option>
+                             <option value="Graduated">Graduated</option>
                          </select>
                          <select className="bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 text-slate-600 focus:ring-2 focus:ring-orange-200 outline-none cursor-pointer transition-all hover:bg-slate-100">
                              <option>Affiliations: All</option>
@@ -93,7 +152,7 @@ export default function StudentList({ students = [] }) {
                 
                 {/* Content Section */}
                 <div className="flex-1 relative">
-                    {students.length === 0 ? (
+                    {rows.length === 0 ? (
                         <div className="bg-white border border-slate-200/60 rounded-[24px] p-12 text-center shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
                             <p className="text-slate-600 font-bold mb-4">No students enrolled yet.</p>
                             <Link
@@ -118,7 +177,7 @@ export default function StudentList({ students = [] }) {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white">
-                                        {students.map((student, i) => (
+                                        {rows.map((student, i) => (
                                             <tr key={student.id} className="border-b border-slate-100/50 hover:bg-orange-50/30 transition-colors group animate-slide-up" style={{animationDelay: `${i * 0.05}s`}}>
                                                 <td className="px-8 py-5 text-[13px] font-bold text-slate-500 font-mono tracking-tight">{student.student_number ?? '—'}</td>
                                                 <td className="px-8 py-5 flex items-center gap-4">
@@ -146,7 +205,7 @@ export default function StudentList({ students = [] }) {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in pb-8">
-                            {students.map((student, i) => (
+                            {rows.map((student, i) => (
                                 <div key={student.id} className="bg-white rounded-[24px] border border-slate-200/60 p-6 shadow-[0_4px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_10px_40px_rgba(249,115,22,0.08)] transition-all duration-300 group hover:-translate-y-1 animate-slide-up relative overflow-hidden" style={{animationDelay: `${i * 0.05}s`}}>
                                     
                                     {/* Delicate top gradient bar */}
@@ -189,6 +248,34 @@ export default function StudentList({ students = [] }) {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {links.length > 0 && (
+                        <div className="mt-6 flex items-center justify-center">
+                            <div className="inline-flex flex-wrap items-center justify-center gap-2 bg-white border border-slate-200/60 rounded-2xl px-4 py-3 shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
+                                {links.map((l, idx) => {
+                                    const isDisabled = !l.url;
+                                    const isActive = !!l.active;
+                                    const label = String(l.label ?? '')
+                                        .replace('&laquo;', '«')
+                                        .replace('&raquo;', '»');
+
+                                    return (
+                                        <Link
+                                            key={`${l.label}-${idx}`}
+                                            href={l.url || '#'}
+                                            preserveScroll
+                                            className={[
+                                                'px-3 py-2 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all select-none',
+                                                isActive ? 'bg-orange-500 text-white shadow-[0_6px_18px_rgba(249,115,22,0.25)]' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300',
+                                                isDisabled ? 'pointer-events-none opacity-40' : '',
+                                            ].join(' ')}
+                                            dangerouslySetInnerHTML={{ __html: label }}
+                                        />
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>

@@ -27,11 +27,10 @@ export default function Welcome() {
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                @import url('https://fonts.googleapis.com/css2?family=Amiko:wght@400;600;700&family=DM+Serif+Display:ital@0;1&family=Poppins:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700;800&display=swap');
                 html { scroll-behavior: smooth; }
             `}} />
 
-            <div className="w-full min-h-screen relative bg-[#F8FAFC] overflow-x-hidden font-['Montserrat'] selection:bg-orange-500 selection:text-white">
+            <div className="w-full min-h-screen relative bg-[#F8FAFC] overflow-x-hidden font-sans selection:bg-orange-500 selection:text-white">
 
                 {/* --- Ambient Backgrounds --- */}
                 {/* Fixed Background container so the gradient stays while scrolling */}

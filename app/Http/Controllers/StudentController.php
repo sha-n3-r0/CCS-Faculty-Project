@@ -10,6 +10,7 @@ use App\Models\StudentViolation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -20,12 +21,41 @@ class StudentController extends Controller
     /**
      * Display a listing of students.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+            'program' => ['nullable', 'string', 'max:255'],
+            'year' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $q = trim((string) ($validated['q'] ?? ''));
+        $program = trim((string) ($validated['program'] ?? ''));
+        $year = trim((string) ($validated['year'] ?? ''));
+        $status = trim((string) ($validated['status'] ?? ''));
+
         $students = Student::query()
+            ->when($q !== '', function ($query) use ($q) {
+                $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $q).'%';
+
+                $query->where(function ($sub) use ($q, $like) {
+                    $sub->where('name', 'like', $like)
+                        ->orWhere('email', 'like', $like)
+                        ->orWhere('student_number', 'like', $like);
+
+                    if (ctype_digit($q)) {
+                        $sub->orWhere('id', '=', (int) $q);
+                    }
+                });
+            })
+            ->when($program !== '' && ! Str::contains($program, ': All'), fn ($query) => $query->where('academic_program', $program))
+            ->when($year !== '' && ! Str::contains($year, ': All'), fn ($query) => $query->where('year_level', $year))
+            ->when($status !== '' && ! Str::contains($status, ': All'), fn ($query) => $query->where('enrollment_status', $status))
             ->orderByDesc('created_at')
-            ->get()
-            ->map(fn (Student $s) => [
+            ->paginate(50)
+            ->withQueryString()
+            ->through(fn (Student $s) => [
                 'id' => $s->id,
                 'student_number' => $s->student_number,
                 'name' => $s->name,
@@ -35,13 +65,19 @@ class StudentController extends Controller
                     ? number_format((float) $s->current_gpa, 2)
                     : '—',
                 'status' => $s->enrollment_status,
-                'photo_url' => $s->photo_path
+                'photo_url' => $s->photo_path && Storage::disk('public')->exists($s->photo_path)
                     ? asset('storage/'.$s->photo_path)
                     : null,
             ]);
 
         return Inertia::render('StudentList', [
             'students' => $students,
+            'filters' => [
+                'q' => $q,
+                'program' => $program,
+                'year' => $year,
+                'status' => $status,
+            ],
         ]);
     }
 
@@ -435,7 +471,7 @@ class StudentController extends Controller
             'year_level' => $student->year_level,
             'enrollment_status' => $student->enrollment_status,
             'current_gpa' => $student->current_gpa !== null ? (string) $student->current_gpa : '',
-            'photo_url' => $student->photo_path
+            'photo_url' => $student->photo_path && Storage::disk('public')->exists($student->photo_path)
                 ? asset('storage/'.$student->photo_path)
                 : null,
             'academic_standing' => $standing?->title ?? '',
@@ -469,6 +505,7 @@ class StudentController extends Controller
     private function studentRecordPayload(Student $student): array
     {
         $photo = $student->photo_path
+            && Storage::disk('public')->exists($student->photo_path)
             ? asset('storage/'.$student->photo_path)
             : asset('images/avatar-placeholder.svg');
 
