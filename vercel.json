@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "https://ccs-faculty-project-rqnx.vercel.app/"
+      "destination": "https://railway.com/project/3f1fbc96-83e1-4684-b2ca-ca9223432171/service/4916849f-d066-4580-9795-a249bbfbff38?environmentId=9b883bc6-4f45-47a5-bb5b-5827ffe3a2bc"
     }
   ]
 }
