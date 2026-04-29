@@ -1,9 +1,38 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "https://railway.com/project/3f1fbc96-83e1-4684-b2ca-ca9223432171/service/4916849f-d066-4580-9795-a249bbfbff38?environmentId=9b883bc6-4f45-47a5-bb5b-5827ffe3a2bc"
+  "version": 2,
+  "outputDirectory": "public",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.9.0"
     }
-  ]
+  },
+  "routes": [
+    {
+      "src": "/build/(.*)",
+      "dest": "/build/$1"
+    },
+    {
+      "src": "/(.*\\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.php"
+    }
+  ],
+  "env": {
+    "APP_ENV": "production",
+    "APP_DEBUG": "false",
+    "APP_CONFIG_CACHE": "/tmp/config.php",
+    "APP_EVENTS_CACHE": "/tmp/events.php",
+    "APP_PACKAGES_CACHE": "/tmp/packages.php",
+    "APP_ROUTES_CACHE": "/tmp/routes.php",
+    "APP_SERVICES_CACHE": "/tmp/services.php",
+    "VIEW_COMPILED_PATH": "/tmp",
+    "CACHE_STORE": "array",
+    "SESSION_DRIVER": "cookie",
+    "LOG_CHANNEL": "stderr"
+  }
 }
